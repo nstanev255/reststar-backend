@@ -5,9 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class RestStarApplication {
-
 	public static void main(String[] args) {
-		SpringApplication.run(RestStarApplication.class, args);
-	}
-
+		SpringApplication.run(RestStarApplication.class, args);	}
 }
