@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.Data;
 
+import java.time.Instant;
+
 @Entity
 @Data
 public class Image {
@@ -11,4 +13,6 @@ public class Image {
     private Long id;
     private String url;
     private String token;
+
+    private Instant uploadDate;
 }
