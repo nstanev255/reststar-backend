@@ -8,8 +8,11 @@ import lombok.Data;
 public class UserInformation {
     @Id
     private Long id;
-    private String username;
     private String email;
+
+    @OneToOne
+    @JoinColumn(name="user_id")
+    private UserEntity user;
     @ManyToOne
     @JoinColumn(name = "profile_picture_id")
     private Image profilePicture;
