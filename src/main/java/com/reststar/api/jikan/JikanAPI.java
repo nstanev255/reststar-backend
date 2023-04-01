@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Component
 public class JikanAPI {
@@ -38,9 +37,6 @@ public class JikanAPI {
             URIBuilder uriBuilder = new URIBuilder(baseUrl + animeUrl + "/" + id + "/full");
             HttpGet httpGet = new HttpGet(uriBuilder.build());
 
-            System.out.println(uriBuilder.build());
-
-
             CloseableHttpResponse response = client.execute(httpGet);
 
             ObjectMapper objectMapper = new ObjectMapper();
@@ -48,9 +44,13 @@ public class JikanAPI {
 
             JikanAnimeByIdResponse jikanResponse = objectMapper.readValue(response.getEntity().getContent(), JikanAnimeByIdResponse.class);
 
+            if(jikanResponse.getData() == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
+            }
+
             anime = mapJikanAnime(jikanResponse.getData());
-        } catch (Exception exception) {
-            exception.printStackTrace();
+        } catch (IOException | URISyntaxException exception) {
+            System.out.println("here");
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Service Unavailable.");
         } finally {
             try {
