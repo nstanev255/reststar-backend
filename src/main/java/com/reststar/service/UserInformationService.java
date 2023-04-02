@@ -59,10 +59,19 @@ public class UserInformationService {
             throw new RuntimeException("User id is empty.");
         }
 
+        UserInformation userInformationInfo = findByUserId(userInformationDTO.getUserId());
+        if (userInformationInfo != null) {
+            throw new RuntimeException("User already has user information.");
+        }
+
         UserInformation userInformation = findByEmail(userInformationDTO.getEmail());
-        if (userInformation == null) {
+        if (userInformation != null) {
             throw new RuntimeException("User information already exists.");
         }
+    }
+
+    private UserInformation findByUserId(Long userId) {
+        return userInformationRepository.findByUserEntity_Id(userId);
     }
 
     @Transactional
