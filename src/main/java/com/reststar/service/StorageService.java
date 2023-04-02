@@ -1,7 +1,6 @@
 package com.reststar.service;
 
 import com.reststar.constants.Constants;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.Tika;
@@ -16,6 +15,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -75,5 +75,27 @@ public class StorageService {
         if (size > Constants.MAX_IMAGE_UPLOAD_ALLOWED) {
             throw new RuntimeException("The file size exceeds the limit.");
         }
+    }
+
+    private File loadFile(String baseDir, String filename) {
+        Path path = Paths.get(baseDir, filename);
+        File file = path.toFile();
+
+        if(!file.isFile()) {
+            file = null;
+        }
+
+        return file;
+    }
+
+    public File loadTemporaryImage(String imageId) {
+        Path temporaryDir = Paths.get(this.temporaryDir, this.imagesSubdir);
+        File image = loadFile(temporaryDir.toString(), imageId + ".jpg");
+
+        if(image == null) {
+            throw new RuntimeException("Image not uploaded");
+        }
+
+        return image;
     }
 }
