@@ -34,7 +34,7 @@ public class ImageService {
 
     public Image findImageByIdAndThrow(String uuid) {
         Image image = this.findImageById(uuid);
-        if(image == null) {
+        if (image == null) {
             throw new RuntimeException("Image not found");
         }
 
@@ -45,12 +45,21 @@ public class ImageService {
         return findImageByIdAndThrow(profileImageUUID);
     }
 
-    public Image getDefaultBannerImage(){
+    public Image getDefaultBannerImage() {
         return findImageByIdAndThrow(bannerImageUUID);
+    }
+
+    public void throwIfExists(String imageId) {
+        Image imageById = findImageById(imageId);
+        if (imageById != null) {
+            throw new RuntimeException("Image is already used.");
+        }
     }
 
     @Transactional
     public Image createImage(String imageId) {
+        throwIfExists(imageId);
+
         File file = this.storageService.loadTemporaryImage(imageId);
         UUID uuid = UUID.fromString(imageId);
 
