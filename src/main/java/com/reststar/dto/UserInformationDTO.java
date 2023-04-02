@@ -11,9 +11,6 @@ public class UserInformationDTO {
     private Long userId;
 
     @JsonIgnore
-    private String username;
-
-    @JsonIgnore
     private String imageId;
 
     @JsonIgnore

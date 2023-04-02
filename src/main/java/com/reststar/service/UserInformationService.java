@@ -141,10 +141,6 @@ public class UserInformationService {
             throw new RuntimeException("User Information does not exist");
         }
 
-        UserEntity userEntity = userInformation.getUserEntity();
-        if (!StringUtils.isEmpty(request.getUsername()) && !Objects.equals(userEntity.getUsername(), request.getUsername())) {
-            userEntity.setUsername(userEntity.getUsername());
-        }
         if (!StringUtils.isEmpty(request.getEmail()) && !Objects.equals(request.getEmail(), userInformation.getEmail())) {
             userInformation.setEmail(request.getEmail());
         }
