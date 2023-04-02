@@ -12,7 +12,7 @@ public class UserInformation {
 
     @OneToOne
     @JoinColumn(name="user_id")
-    private UserEntity user;
+    private UserEntity userEntity;
     @ManyToOne
     @JoinColumn(name = "profile_picture_id")
     private Image profilePicture;

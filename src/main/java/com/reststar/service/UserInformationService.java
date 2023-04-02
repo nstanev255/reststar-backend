@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Service
 public class UserInformationService {
     @Autowired
@@ -41,7 +43,7 @@ public class UserInformationService {
     @Transactional
     public UserInformation createUserInformation(String email, UserEntity userEntity, Image banner, Image profileImage) {
         UserInformation userInformation = new UserInformation();
-        userInformation.setUser(userEntity);
+        userInformation.setUserEntity(userEntity);
         userInformation.setBanner(banner);
         userInformation.setProfilePicture(profileImage);
         userInformation.setEmail(email);
@@ -64,9 +66,9 @@ public class UserInformationService {
     private UserInformationResponseDTO mapUserInformationToResponse(UserInformation userInformation) {
         UserInformationResponseDTO dto = new UserInformationResponseDTO();
 
-        dto.setUsername(userInformation.getUser().getUsername());
+        dto.setUsername(userInformation.getUserEntity().getUsername());
         dto.setEmail(userInformation.getEmail());
-        dto.setUserId(userInformation.getUser().getId());
+        dto.setUserId(userInformation.getUserEntity().getId());
         dto.setBannerPictureUrl(userInformation.getProfilePicture().getUrl());
         dto.setProfilePictureUrl(userInformation.getBanner().getUrl());
 
@@ -82,5 +84,36 @@ public class UserInformationService {
         }
 
         return image;
+    }
+
+    public UserInformationResponseDTO updateUserInformationFormDTO(UserInformationDTO request) {
+        validateUserInformation(request);
+        return mapUserInformationToResponse(handleUpdateUserInformation(request));
+    }
+
+    private UserInformation handleUpdateUserInformation(UserInformationDTO request) {
+        UserInformation userInformation = userInformationRepository.findByUserEntity_Id(request.getUserId());
+        if (userInformation == null) {
+            throw new RuntimeException("User Information does not exist");
+        }
+
+        UserEntity userEntity = userInformation.getUserEntity();
+        if (!StringUtils.isEmpty(request.getUsername()) && !Objects.equals(userEntity.getUsername(), request.getUsername())) {
+            userEntity.setUsername(userEntity.getUsername());
+        }
+        if (!StringUtils.isEmpty(request.getEmail()) && !Objects.equals(request.getEmail(), userInformation.getEmail())) {
+            userInformation.setEmail(request.getEmail());
+        }
+        if (!Objects.equals(userInformation.getProfilePicture().getToken().toString(), request.getImageId())) {
+            Image profilePicture = handleImage(request.getImageId());
+            userInformation.setProfilePicture(profilePicture);
+        }
+
+        if(!Objects.equals(userInformation.getBanner().getToken().toString(), request.getBannerId())) {
+            Image bannerPicture = handleImage(request.getBannerId());
+            userInformation.setBanner(bannerPicture);
+        }
+
+        return userInformationRepository.save(userInformation);
     }
 }
