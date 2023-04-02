@@ -136,12 +136,12 @@ public class UserInformationService {
     }
 
     private void validateUpdateUserInformation(UserInformationDTO request) {
-        if(request.getUserId() == null) {
+        if (request.getUserId() == null) {
             throw new RuntimeException("User must be provided.");
         }
 
         UserInformation userEntityId = userInformationRepository.findByUserEntity_Id(request.getUserId());
-        if(userEntityId == null) {
+        if (userEntityId == null) {
             throw new RuntimeException("This user does not contain user information.");
         }
 
@@ -149,9 +149,6 @@ public class UserInformationService {
 
     private UserInformation handleUpdateUserInformation(UserInformationDTO request) {
         UserInformation userInformation = userInformationRepository.findByUserEntity_Id(request.getUserId());
-        if (userInformation == null) {
-            throw new RuntimeException("User Information does not exist");
-        }
 
         if (!StringUtils.isEmpty(request.getEmail()) && !Objects.equals(request.getEmail(), userInformation.getEmail())) {
             userInformation.setEmail(request.getEmail());
@@ -164,6 +161,8 @@ public class UserInformationService {
         Image found = pictures.stream().filter(i -> StringUtils.equals(i.getToken().toString(), imageId)).findFirst().orElse(null);
         if (found == null) {
             pictures.add(imageService.createImage(imageId));
+        } else {
+            throw new RuntimeException("Image already uploaded.");
         }
     }
 
