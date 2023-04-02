@@ -29,4 +29,9 @@ public class UserInformationController {
         return userInformationService.updateProfilePicture(id, request);
     }
 
+    @PutMapping("/{id}/banner")
+    public UserInformationResponseDTO updateBannerPicture(@PathVariable(name = "id") Long id, @RequestBody ImageRequestDTO request) {
+        return userInformationService.updateBannerPicture(id, request);
+    }
+
 }
