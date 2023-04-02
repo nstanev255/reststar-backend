@@ -179,4 +179,18 @@ public class UserInformationService {
 
         return mapUserInformationToResponse(userInformation);
     }
+
+    public UserInformationResponseDTO updateBannerPicture(Long id, ImageRequestDTO request) {
+        UserInformation userInformation = findByIdAndThrow(id);
+
+        List<Image> bannerPictures = userInformation.getBanners();
+        if(bannerPictures == null) {
+            bannerPictures = new ArrayList<>();
+        }
+
+        handleUpdateImage(bannerPictures, request.getImageUUID());
+        userInformationRepository.save(userInformation);
+
+        return mapUserInformationToResponse(userInformation);
+    }
 }
