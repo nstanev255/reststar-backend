@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class UserInformationService {
@@ -44,8 +44,8 @@ public class UserInformationService {
     public UserInformation createUserInformation(String email, UserEntity userEntity, Image banner, Image profileImage) {
         UserInformation userInformation = new UserInformation();
         userInformation.setUserEntity(userEntity);
-        userInformation.setBanner(banner);
-        userInformation.setProfilePicture(profileImage);
+        userInformation.setBanners(Collections.singletonList(banner));
+        userInformation.setProfilePictures(Collections.singletonList(profileImage));
         userInformation.setEmail(email);
 
         return userInformationRepository.save(userInformation);
@@ -55,8 +55,8 @@ public class UserInformationService {
     private UserInformationResponseDTO handleCreateUserInformation(UserInformationDTO userInformationDTO) {
         UserEntity userEntity = userEntityService.findByIdAndThrow(userInformationDTO.getUserId());
 
-        Image profileImage = handleImage(userInformationDTO.getImageId());
-        Image bannerImage = handleImage(userInformationDTO.getBannerId());
+        Image profileImage = handleImage(userInformationDTO.getImageId(), imageService.getDefaultProfileImage());
+        Image bannerImage = handleImage(userInformationDTO.getBannerId(), imageService.getDefaultBannerImage());
 
         UserInformation userInformation = createUserInformation(userInformationDTO.getEmail(), userEntity, bannerImage, profileImage);
 
@@ -69,16 +69,30 @@ public class UserInformationService {
         dto.setUsername(userInformation.getUserEntity().getUsername());
         dto.setEmail(userInformation.getEmail());
         dto.setUserId(userInformation.getUserEntity().getId());
-        dto.setBannerPictureUrl(userInformation.getProfilePicture().getUrl());
-        dto.setProfilePictureUrl(userInformation.getBanner().getUrl());
+        dto.setBannerPictureUrl(mapImagesToStrings(userInformation.getProfilePictures()));
+        dto.setProfilePictureUrl(mapImagesToStrings(userInformation.getBanners()));
 
         return dto;
     }
 
-    private Image handleImage(String imageUUID) {
+    private List<String> mapImagesToStrings(List<Image> images) {
+        List<String> imageStrings = new ArrayList<>();
+
+        if (images == null) {
+            return imageStrings;
+        }
+
+        for (Image image : images) {
+            imageStrings.add(image.getUrl());
+        }
+
+        return imageStrings;
+    }
+
+    private Image handleImage(String imageUUID, Image defaultImage) {
         Image image = null;
         if (StringUtils.isEmpty(imageUUID)) {
-            image = imageService.getDefaultProfileImage();
+            image = defaultImage;
         } else {
             image = imageService.createImage(imageUUID);
         }
@@ -104,16 +118,32 @@ public class UserInformationService {
         if (!StringUtils.isEmpty(request.getEmail()) && !Objects.equals(request.getEmail(), userInformation.getEmail())) {
             userInformation.setEmail(request.getEmail());
         }
-        if (!Objects.equals(userInformation.getProfilePicture().getToken().toString(), request.getImageId())) {
-            Image profilePicture = handleImage(request.getImageId());
-            userInformation.setProfilePicture(profilePicture);
+
+        List<Image> banners = userInformation.getBanners();
+        List<Image> profilePictures = userInformation.getProfilePictures();
+
+        if (banners == null) {
+            banners = new ArrayList<>();
         }
 
-        if(!Objects.equals(userInformation.getBanner().getToken().toString(), request.getBannerId())) {
-            Image bannerPicture = handleImage(request.getBannerId());
-            userInformation.setBanner(bannerPicture);
+        if (profilePictures == null) {
+            profilePictures = new ArrayList<>();
         }
+
+        handleUpdateImage(profilePictures, request.getImageId(), this.imageService.getDefaultProfileImage());
+        handleUpdateImage(banners, request.getBannerId(), this.imageService.getDefaultBannerImage());
 
         return userInformationRepository.save(userInformation);
+    }
+
+    private void handleUpdateImage(List<Image> pictures, String imageId, Image defaultImage) {
+        if (StringUtils.isEmpty(imageId) && pictures.isEmpty()) {
+            pictures.add(defaultImage);
+        } else {
+            Image found = pictures.stream().filter(i -> StringUtils.equals(i.getToken().toString(), imageId)).findFirst().orElse(null);
+            if (found == null) {
+                pictures.add(imageService.createImage(imageId));
+            }
+        }
     }
 }

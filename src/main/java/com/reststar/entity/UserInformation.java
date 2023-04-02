@@ -3,6 +3,8 @@ package com.reststar.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.List;
+
 @Entity
 @Data
 public class UserInformation {
@@ -11,12 +13,20 @@ public class UserInformation {
     private String email;
 
     @OneToOne
-    @JoinColumn(name="user_id")
+    @JoinColumn(name = "user_id")
     private UserEntity userEntity;
-    @ManyToOne
-    @JoinColumn(name = "profile_picture_id")
-    private Image profilePicture;
-    @ManyToOne
-    @JoinColumn(name = "banner_id")
-    private Image banner;
+    @ManyToMany
+    @JoinTable(
+            name = "profile_image_user_information",
+            joinColumns = @JoinColumn(name = "user_information_id"),
+            inverseJoinColumns = @JoinColumn(name = "image_Id")
+    )
+    private List<Image> profilePictures;
+    @ManyToMany
+    @JoinTable(
+            name = "banner_image_user_information",
+            joinColumns = @JoinColumn(name = "user_information_id"),
+            inverseJoinColumns = @JoinColumn(name = "image_id")
+    )
+    private List<Image> banners;
 }
