@@ -1,5 +1,6 @@
 package com.reststar.service;
 
+import com.reststar.dto.ImageRequestDTO;
 import com.reststar.dto.UserInformationDTO;
 import com.reststar.dto.UserInformationResponseDTO;
 import com.reststar.entity.Image;
@@ -24,13 +25,32 @@ public class UserInformationService {
     @Autowired
     private ImageService imageService;
 
+    private UserInformation findById(Long id) {
+        Optional<UserInformation> userInformation = userInformationRepository.findById(id);
+        return userInformation.orElse(null);
+    }
+
+    private UserInformation findByIdAndThrow(Long id) {
+        UserInformation userInformation = findById(id);
+
+        if (userInformation == null) {
+            throw new RuntimeException("User information not found");
+        }
+
+        return userInformation;
+    }
+
+    public UserInformation findByEmail(String email) {
+        return userInformationRepository.findByEmail(email);
+    }
+
     public UserInformationResponseDTO createUserInformationFromDTO(UserInformationDTO userInformationDTO) {
-        validateUserInformation(userInformationDTO);
+        validateNewUserInformation(userInformationDTO);
         return handleCreateUserInformation(userInformationDTO);
 
     }
 
-    private void validateUserInformation(com.reststar.dto.UserInformationDTO userInformationDTO) {
+    private void validateNewUserInformation(com.reststar.dto.UserInformationDTO userInformationDTO) {
         if (StringUtils.isEmpty(userInformationDTO.getEmail())) {
             throw new RuntimeException("Email is empty.");
         }
@@ -38,15 +58,20 @@ public class UserInformationService {
         if (userInformationDTO.getUserId() == null) {
             throw new RuntimeException("User id is empty.");
         }
+
+        UserInformation userInformation = findByEmail(userInformationDTO.getEmail());
+        if (userInformation == null) {
+            throw new RuntimeException("User information already exists.");
+        }
     }
 
     @Transactional
-    public UserInformation createUserInformation(String email, UserEntity userEntity, Image banner, Image profileImage) {
+    public UserInformation createUserInformation(String email, UserEntity userEntity, Image profilePicture, Image bannerPicture) {
         UserInformation userInformation = new UserInformation();
         userInformation.setUserEntity(userEntity);
-        userInformation.setBanners(Collections.singletonList(banner));
-        userInformation.setProfilePictures(Collections.singletonList(profileImage));
         userInformation.setEmail(email);
+        userInformation.setProfilePictures(Collections.singletonList(profilePicture));
+        userInformation.setBanners(Collections.singletonList(bannerPicture));
 
         return userInformationRepository.save(userInformation);
     }
@@ -55,10 +80,17 @@ public class UserInformationService {
     private UserInformationResponseDTO handleCreateUserInformation(UserInformationDTO userInformationDTO) {
         UserEntity userEntity = userEntityService.findByIdAndThrow(userInformationDTO.getUserId());
 
-        Image profileImage = handleImage(userInformationDTO.getImageId(), imageService.getDefaultProfileImage());
-        Image bannerImage = handleImage(userInformationDTO.getBannerId(), imageService.getDefaultBannerImage());
+        Image profilePicture = imageService.getDefaultProfileImage();
+        if (!StringUtils.isEmpty(userInformationDTO.getImageId())) {
+            profilePicture = imageService.createImage(userInformationDTO.getImageId());
+        }
 
-        UserInformation userInformation = createUserInformation(userInformationDTO.getEmail(), userEntity, bannerImage, profileImage);
+        Image bannerPicture = imageService.getDefaultBannerImage();
+        if (!StringUtils.isEmpty(userInformationDTO.getBannerId())) {
+            bannerPicture = imageService.createImage(userInformationDTO.getBannerId());
+        }
+
+        UserInformation userInformation = createUserInformation(userInformationDTO.getEmail(), userEntity, profilePicture, bannerPicture);
 
         return mapUserInformationToResponse(userInformation);
     }
@@ -89,19 +121,8 @@ public class UserInformationService {
         return imageStrings;
     }
 
-    private Image handleImage(String imageUUID, Image defaultImage) {
-        Image image = null;
-        if (StringUtils.isEmpty(imageUUID)) {
-            image = defaultImage;
-        } else {
-            image = imageService.createImage(imageUUID);
-        }
-
-        return image;
-    }
-
     public UserInformationResponseDTO updateUserInformationFormDTO(UserInformationDTO request) {
-        validateUserInformation(request);
+        validateNewUserInformation(request);
         return mapUserInformationToResponse(handleUpdateUserInformation(request));
     }
 
@@ -119,31 +140,27 @@ public class UserInformationService {
             userInformation.setEmail(request.getEmail());
         }
 
-        List<Image> banners = userInformation.getBanners();
-        List<Image> profilePictures = userInformation.getProfilePictures();
+        return userInformationRepository.save(userInformation);
+    }
 
-        if (banners == null) {
-            banners = new ArrayList<>();
+    private void handleUpdateImage(List<Image> pictures, String imageId) {
+        Image found = pictures.stream().filter(i -> StringUtils.equals(i.getToken().toString(), imageId)).findFirst().orElse(null);
+        if (found == null) {
+            pictures.add(imageService.createImage(imageId));
         }
+    }
 
+    public UserInformationResponseDTO updateProfilePicture(Long id, ImageRequestDTO request) {
+        UserInformation userInformation = findByIdAndThrow(id);
+
+        List<Image> profilePictures = userInformation.getProfilePictures();
         if (profilePictures == null) {
             profilePictures = new ArrayList<>();
         }
 
-        handleUpdateImage(profilePictures, request.getImageId(), this.imageService.getDefaultProfileImage());
-        handleUpdateImage(banners, request.getBannerId(), this.imageService.getDefaultBannerImage());
+        handleUpdateImage(profilePictures, request.getImageUUID());
+        userInformationRepository.save(userInformation);
 
-        return userInformationRepository.save(userInformation);
-    }
-
-    private void handleUpdateImage(List<Image> pictures, String imageId, Image defaultImage) {
-        if (StringUtils.isEmpty(imageId) && pictures.isEmpty()) {
-            pictures.add(defaultImage);
-        } else {
-            Image found = pictures.stream().filter(i -> StringUtils.equals(i.getToken().toString(), imageId)).findFirst().orElse(null);
-            if (found == null) {
-                pictures.add(imageService.createImage(imageId));
-            }
-        }
+        return mapUserInformationToResponse(userInformation);
     }
 }

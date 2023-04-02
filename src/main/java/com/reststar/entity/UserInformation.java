@@ -9,6 +9,7 @@ import java.util.List;
 @Data
 public class UserInformation {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private String email;
 
