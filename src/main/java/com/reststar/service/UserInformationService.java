@@ -131,8 +131,20 @@ public class UserInformationService {
     }
 
     public UserInformationResponseDTO updateUserInformationFormDTO(UserInformationDTO request) {
-        validateNewUserInformation(request);
+        validateUpdateUserInformation(request);
         return mapUserInformationToResponse(handleUpdateUserInformation(request));
+    }
+
+    private void validateUpdateUserInformation(UserInformationDTO request) {
+        if(request.getUserId() == null) {
+            throw new RuntimeException("User must be provided.");
+        }
+
+        UserInformation userEntityId = userInformationRepository.findByUserEntity_Id(request.getUserId());
+        if(userEntityId == null) {
+            throw new RuntimeException("This user does not contain user information.");
+        }
+
     }
 
     private UserInformation handleUpdateUserInformation(UserInformationDTO request) {
