@@ -49,7 +49,7 @@ public class UserInformationService {
         return userInformationRepository.save(userInformation);
     }
 
-    @Transactional
+
     private UserInformationResponseDTO handleCreateUserInformation(UserInformationDTO userInformationDTO) {
         UserEntity userEntity = userEntityService.findByIdAndThrow(userInformationDTO.getUserId());
 

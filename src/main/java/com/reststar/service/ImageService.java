@@ -5,6 +5,7 @@ import com.reststar.repository.ImageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.time.Instant;
@@ -22,7 +23,7 @@ public class ImageService {
     @Value("${default.profile.image.uuid}")
     private String profileImageUUID;
 
-    @Value("${default.banner.image.uui}")
+    @Value("${default.banner.image.uuid}")
     private String bannerImageUUID;
 
     public Image findImageById(String uuid) {
@@ -48,7 +49,7 @@ public class ImageService {
         return findImageByIdAndThrow(bannerImageUUID);
     }
 
-    @Autowired
+    @Transactional
     public Image createImage(String imageId) {
         File file = this.storageService.loadTemporaryImage(imageId);
         UUID uuid = UUID.fromString(imageId);
