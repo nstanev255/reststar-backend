@@ -50,7 +50,7 @@ public class UserInformationService {
 
     }
 
-    private void validateNewUserInformation(com.reststar.dto.UserInformationDTO userInformationDTO) {
+    private void validateNewUserInformation(UserInformationDTO userInformationDTO) {
         if (StringUtils.isEmpty(userInformationDTO.getEmail())) {
             throw new RuntimeException("Email is empty.");
         }

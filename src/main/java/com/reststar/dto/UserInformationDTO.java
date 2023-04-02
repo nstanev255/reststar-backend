@@ -5,10 +5,17 @@ import lombok.Data;
 
 @Data
 public class UserInformationDTO {
+
     private String email;
+
     private Long userId;
+
     @JsonIgnore
     private String username;
+
+    @JsonIgnore
     private String imageId;
+
+    @JsonIgnore
     private String bannerId;
 }
