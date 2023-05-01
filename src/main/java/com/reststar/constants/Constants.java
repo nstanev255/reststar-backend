@@ -7,4 +7,7 @@ public class Constants {
     public final static Integer MAX_IMAGE_UPLOAD_ALLOWED = 10 * 1024 * 1024; // 10MB
 
     public final static String TEMP_FILE_EXTENSION = "tmp";
+
+    public final static Integer PAGE = 1;
+    public final static Integer LIMIT = 10;
 }
