@@ -56,8 +56,6 @@ public class JikanAPI {
             CloseableHttpResponse response = client.execute(httpGet);
             HttpEntity entity = response.getEntity();
 
-            System.out.println("entity " + entity.getContent().toString());
-
             JikanSearchResponse jikanSearchResponse = this.mapper.readValue(entity.getContent(), JikanSearchResponse.class);
             paginationResponse = mapPaginationResponse(jikanSearchResponse);
 
