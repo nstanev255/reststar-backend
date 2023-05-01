@@ -43,6 +43,23 @@ public class JikanAPI {
         this.mapper.registerModule(new JavaTimeModule());
     }
 
+    /**
+     * This method is used for calling the jikan api.
+     * @param additionalUrl
+     *   If there is something additional needed to be added to the url.
+     *   For example, if the url has a path param, or some additions to the url.
+     *
+     *   If not, use null.
+     * @param queryParams
+     *   The GET Query params, if any.
+     *
+     *   If not, use null.
+     * @param httpMethod
+     *   The HttpMethod to do request. This is required.
+     *
+     * @return
+     *   Returns the HttpEntity, which can be used to extract all the needed inforamtion.
+     */
     private HttpEntity doRequest(String additionalUrl, Map<String, Object> queryParams, HttpMethod httpMethod) {
 
         CloseableHttpClient client = HttpClients.createDefault();
@@ -76,6 +93,13 @@ public class JikanAPI {
         }
     }
 
+    /**
+     * Hit the Jikan /search api endpoint.
+     * @param params
+     *   The query params.
+     * @return
+     *   The response form the search, paginated.
+     */
     public PaginationResponse search(Map<String, Object> params) {
         PaginationResponse paginationResponse;
 
@@ -119,6 +143,13 @@ public class JikanAPI {
         return mappedData;
     }
 
+    /**
+     * Hit the getById anime endpoint.
+     * @param id
+     *   The id of the anime to search for.
+     * @return
+     *   The Found Anime. If not found an 404 exception is thrown.
+     */
     public com.reststar.model.anime.Anime findAnimeById(Long id) {
 
         com.reststar.model.anime.Anime anime;
