@@ -3,8 +3,13 @@ package com.reststar.api.jikan;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.reststar.api.jikan.model.*;
+import com.reststar.api.jikan.model.response.JikanAnimeByIdResponse;
+import com.reststar.api.jikan.model.response.JikanSearchResponse;
+import com.reststar.api.jikan.model.response.Pagination;
+import com.reststar.model.anime.PaginationResponse;
 import com.reststar.model.anime.Type;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.URIBuilder;
@@ -19,6 +24,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class JikanAPI {
@@ -28,6 +34,79 @@ public class JikanAPI {
 
     @Value("${api.jikan.api.anime.url}")
     private String animeUrl;
+
+    private final ObjectMapper mapper;
+
+    public JikanAPI() {
+        this.mapper = new ObjectMapper();
+        this.mapper.registerModule(new JavaTimeModule());
+    }
+
+    public PaginationResponse search(Map<String, Object> params) {
+
+        CloseableHttpClient client = HttpClients.createDefault();
+        PaginationResponse paginationResponse;
+
+        try {
+            URIBuilder uriBuilder = new URIBuilder(baseUrl + animeUrl);
+            mapUriPrams(params, uriBuilder);
+
+            HttpGet httpGet = new HttpGet(uriBuilder.build());
+
+            CloseableHttpResponse response = client.execute(httpGet);
+            HttpEntity entity = response.getEntity();
+
+            System.out.println("entity " + entity.getContent().toString());
+
+            JikanSearchResponse jikanSearchResponse = this.mapper.readValue(entity.getContent(), JikanSearchResponse.class);
+            paginationResponse = mapPaginationResponse(jikanSearchResponse);
+
+        } catch (URISyntaxException | IOException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, exception.toString());
+        } finally {
+            try {
+                client.close();
+            } catch (IOException e) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.toString());
+            }
+        }
+
+        return paginationResponse;
+    }
+
+    private void mapUriPrams(Map<String, Object> params, URIBuilder uriBuilder) {
+        for (String key : params.keySet()) {
+            uriBuilder.addParameter(key, String.valueOf(params.get(key)));
+        }
+    }
+
+    private PaginationResponse mapPaginationResponse(JikanSearchResponse jikanSearchResponse) {
+        PaginationResponse response = new PaginationResponse();
+
+        List<com.reststar.model.anime.Anime> data = mapSearchData(jikanSearchResponse.getData());
+        Pagination jikanPagination = jikanSearchResponse.getPagination();
+
+        response.setData(data);
+        response.setTotal(jikanPagination.getItems().getTotal());
+        response.setLastPage(jikanPagination.getLastVisiblePage());
+        response.setItemsPerPage(jikanPagination.getItems().getPerPage());
+        response.setItems(jikanPagination.getItems().getCount());
+
+        return response;
+    }
+
+    private List<com.reststar.model.anime.Anime> mapSearchData(List<Anime> data) {
+        List<com.reststar.model.anime.Anime> mappedData = new ArrayList<>();
+
+        if (data != null && !data.isEmpty()) {
+            for (Anime anime : data) {
+                com.reststar.model.anime.Anime mappedAnime = mapJikanAnime(anime);
+                mappedData.add(mappedAnime);
+            }
+        }
+
+        return mappedData;
+    }
 
     public com.reststar.model.anime.Anime findAnimeById(Long id) {
 
@@ -39,12 +118,9 @@ public class JikanAPI {
 
             CloseableHttpResponse response = client.execute(httpGet);
 
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.registerModule(new JavaTimeModule());
+            JikanAnimeByIdResponse jikanResponse = this.mapper.readValue(response.getEntity().getContent(), JikanAnimeByIdResponse.class);
 
-            JikanAnimeByIdResponse jikanResponse = objectMapper.readValue(response.getEntity().getContent(), JikanAnimeByIdResponse.class);
-
-            if(jikanResponse.getData() == null) {
+            if (jikanResponse.getData() == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
             }
 
@@ -86,8 +162,8 @@ public class JikanAPI {
     private void mapGenres(com.reststar.model.anime.Anime animeModel, Anime anime) {
         List<com.reststar.model.anime.Genre> genres = new ArrayList<>();
 
-        if(anime.getGenres() != null && anime.getGenres().size() > 0) {
-            for(Genre modelGenre: anime.getGenres()) {
+        if (anime.getGenres() != null && anime.getGenres().size() > 0) {
+            for (Genre modelGenre : anime.getGenres()) {
                 com.reststar.model.anime.Genre genre = new com.reststar.model.anime.Genre();
                 genre.setId(modelGenre.getMalId());
                 genre.setName(modelGenre.getName());
@@ -96,8 +172,8 @@ public class JikanAPI {
             }
         }
 
-        if(anime.getExplicitGenres() != null && anime.getExplicitGenres().size() > 0) {
-            for(Genre modelGenre: anime.getExplicitGenres()) {
+        if (anime.getExplicitGenres() != null && anime.getExplicitGenres().size() > 0) {
+            for (Genre modelGenre : anime.getExplicitGenres()) {
                 com.reststar.model.anime.Genre genre = new com.reststar.model.anime.Genre();
                 genre.setName(modelGenre.getName());
                 genre.setId(modelGenre.getMalId());
@@ -110,7 +186,7 @@ public class JikanAPI {
     }
 
     private void mapStatus(com.reststar.model.anime.Anime animeModel, Anime anime) {
-        if(anime.getStatus() == null) {
+        if (anime.getStatus() == null) {
             return;
         }
 
@@ -122,7 +198,7 @@ public class JikanAPI {
     }
 
     private void mapSeason(com.reststar.model.anime.Anime animeModel, Anime anime) {
-        if(anime.getSeason() == null) {
+        if (anime.getSeason() == null) {
             return;
         }
         switch (anime.getSeason()) {
@@ -135,7 +211,7 @@ public class JikanAPI {
 
     private void mapAired(com.reststar.model.anime.Anime animeModel, Anime anime) {
         Aired aired = anime.getAired();
-        if(aired == null) {
+        if (aired == null) {
             return;
         }
 
@@ -144,7 +220,7 @@ public class JikanAPI {
     }
 
     private void mapType(com.reststar.model.anime.Anime animeModel, Anime anime) {
-        if(anime.getType() == null) {
+        if (anime.getType() == null) {
             return;
         }
 
