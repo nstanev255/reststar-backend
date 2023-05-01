@@ -8,10 +8,11 @@ import com.reststar.api.jikan.model.response.JikanSearchResponse;
 import com.reststar.api.jikan.model.response.Pagination;
 import com.reststar.model.anime.PaginationResponse;
 import com.reststar.model.anime.Type;
+import com.reststar.utils.HttpMethod;
+import com.reststar.utils.UriUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -42,41 +43,53 @@ public class JikanAPI {
         this.mapper.registerModule(new JavaTimeModule());
     }
 
-    public PaginationResponse search(Map<String, Object> params) {
+    private HttpEntity doRequest(String additionalUrl, Map<String, Object> queryParams, HttpMethod httpMethod) {
 
         CloseableHttpClient client = HttpClients.createDefault();
-        PaginationResponse paginationResponse;
 
         try {
-            URIBuilder uriBuilder = new URIBuilder(baseUrl + animeUrl);
-            mapUriPrams(params, uriBuilder);
+            String baseAnimeUrl = baseUrl + animeUrl;
+            if (!StringUtils.isEmpty(additionalUrl)) {
+                baseAnimeUrl += additionalUrl;
+            }
 
-            HttpGet httpGet = new HttpGet(uriBuilder.build());
+            URIBuilder uriBuilder = new URIBuilder(baseAnimeUrl);
+            UriUtils.mapUriParams(uriBuilder, queryParams);
 
-            CloseableHttpResponse response = client.execute(httpGet);
-            HttpEntity entity = response.getEntity();
+            HttpRequestBase request = null;
+            switch (httpMethod) {
+                case GET -> request = new HttpGet(uriBuilder.build());
+                case POST -> request = new HttpPost(uriBuilder.build());
+                case PUT -> request = new HttpPut(uriBuilder.build());
+            }
 
-            JikanSearchResponse jikanSearchResponse = this.mapper.readValue(entity.getContent(), JikanSearchResponse.class);
-            paginationResponse = mapPaginationResponse(jikanSearchResponse);
+            return client.execute(request).getEntity();
 
-        } catch (URISyntaxException | IOException exception) {
+        } catch (Exception exception) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, exception.toString());
         } finally {
             try {
                 client.close();
-            } catch (IOException e) {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.toString());
+            } catch (Exception exception) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, exception.toString());
             }
+        }
+    }
+
+    public PaginationResponse search(Map<String, Object> params) {
+        PaginationResponse paginationResponse;
+
+        try {
+            HttpEntity entity = doRequest(null, params, HttpMethod.GET);
+            JikanSearchResponse jikanSearchResponse = this.mapper.readValue(entity.getContent(), JikanSearchResponse.class);
+            paginationResponse = mapPaginationResponse(jikanSearchResponse);
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, exception.toString());
         }
 
         return paginationResponse;
     }
 
-    private void mapUriPrams(Map<String, Object> params, URIBuilder uriBuilder) {
-        for (String key : params.keySet()) {
-            uriBuilder.addParameter(key, String.valueOf(params.get(key)));
-        }
-    }
 
     private PaginationResponse mapPaginationResponse(JikanSearchResponse jikanSearchResponse) {
         PaginationResponse response = new PaginationResponse();
@@ -109,29 +122,17 @@ public class JikanAPI {
     public com.reststar.model.anime.Anime findAnimeById(Long id) {
 
         com.reststar.model.anime.Anime anime;
-        CloseableHttpClient client = HttpClients.createDefault();
         try {
-            URIBuilder uriBuilder = new URIBuilder(baseUrl + animeUrl + "/" + id + "/full");
-            HttpGet httpGet = new HttpGet(uriBuilder.build());
-
-            CloseableHttpResponse response = client.execute(httpGet);
-
-            JikanAnimeByIdResponse jikanResponse = this.mapper.readValue(response.getEntity().getContent(), JikanAnimeByIdResponse.class);
+            HttpEntity httpEntity = doRequest("/" + id + "/full", null, HttpMethod.GET);
+            JikanAnimeByIdResponse jikanResponse = this.mapper.readValue(httpEntity.getContent(), JikanAnimeByIdResponse.class);
 
             if (jikanResponse.getData() == null) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
             }
 
             anime = mapJikanAnime(jikanResponse.getData());
-        } catch (IOException | URISyntaxException exception) {
-            System.out.println("here");
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Service Unavailable.");
-        } finally {
-            try {
-                client.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, exception.toString());
         }
 
         return anime;
